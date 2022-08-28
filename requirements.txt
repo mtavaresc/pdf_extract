@@ -1,0 +1,14 @@
+aiofiles
+fastapi
+itsdangerous
+Jinja2
+python-multipart
+uvicorn
+numpy~=1.23.1
+pandas~=1.4.3
+tabula-py
+
+#for development       #new
+
+#for testing       #new
+
