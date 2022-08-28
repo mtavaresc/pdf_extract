@@ -14,7 +14,7 @@ from core.model import Record
 
 @dataclass(frozen=True)
 class Extractor:
-    destination: ClassVar[AnyStr] = os.path.join(os.getcwd(), "static", "out")
+    destination: ClassVar[AnyStr] = os.path.join("static", "out")
     file: AnyStr
 
     def execute(self):
