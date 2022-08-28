@@ -7,6 +7,7 @@ uvicorn
 numpy~=1.23.1
 pandas~=1.4.3
 tabula-py
+openpyxl
 
 #for development       #new
 
