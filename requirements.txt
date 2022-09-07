@@ -1,15 +1,17 @@
 aiofiles
-fastapi
+fastapi~=0.81.0
 itsdangerous
 Jinja2
 python-multipart
-uvicorn
+uvicorn~=0.18.3
 numpy~=1.23.1
 pandas~=1.4.3
 tabula-py
 openpyxl
-
+xlrd~=1.2.0
+starlette~=0.19.1
 #for development       #new
 
 #for testing       #new
+
 

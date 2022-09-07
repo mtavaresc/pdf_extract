@@ -1,25 +1,21 @@
 import os
 from typing import Any
+
 import uvicorn
-from fastapi.responses import FileResponse
 from fastapi import FastAPI
 from fastapi import File
+from fastapi import Form
 from fastapi import Request
 from fastapi import UploadFile
+from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from core.extractor import Extractor
+from core.router import ROUTER
 from core.utils import save_file
-
-"""
-1. choose file to extract.
-2. process it!
-3. download the file processed.
-"""
 
 
 def flash(request: Request, message: Any, category: str = "primary") -> None:
@@ -64,16 +60,16 @@ async def home_page(request: Request):
 
 
 @app.post("/")
-async def execute(request: Request, file_path: UploadFile = File(..., description="Enviar arquivo .pdf")):
+async def execute(request: Request, option: str = Form(...), file_path: UploadFile = File(...)):
     content = await file_path.read()
     file_path = save_file(file_path.filename, content)
 
-    extractor = Extractor(file_path)
+    extractor = ROUTER.get(option).Extractor(file_path)
     download_file = await run(extractor)
     if download_file:
-        flash(request, "PDF extracted", "success")
+        flash(request, "Arquivo processado com sucesso!", "success")
         return templates.TemplateResponse("index.html", {"request": request, "download": download_file})
-    flash(request, "Something went wrong..", "danger")
+    flash(request, "Aldo deu errado, tente novamente mais tarde..", "danger")
     return templates.TemplateResponse("index.html", {"request": request})
 
 

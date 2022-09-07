@@ -1,4 +1,4 @@
-import os.path
+import os
 from dataclasses import dataclass
 from typing import AnyStr
 from typing import ClassVar
@@ -9,7 +9,7 @@ import pandas as pd
 import tabula as tb
 
 from core import utils
-from core.model import Record
+from core.models.wtc import Record
 
 
 @dataclass(frozen=True)
@@ -134,7 +134,6 @@ class Extractor:
                             saldo=saldo,
                         )
                     )
-            # pd.DataFrame(records).to_csv(file.replace("data", "out").replace(".pdf", f"_{page}.csv"))
 
         out_file_xlsx = os.path.join(self.destination, "download.xlsx")
         pd.DataFrame(records).to_excel(out_file_xlsx)
