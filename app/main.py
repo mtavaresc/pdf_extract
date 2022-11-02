@@ -1,7 +1,6 @@
-import os
+from pathlib import Path
 from typing import Any
 
-import uvicorn
 from fastapi import FastAPI
 from fastapi import File
 from fastapi import Form
@@ -11,11 +10,15 @@ from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from mangum import Mangum
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from core.router import ROUTER
 from core.utils import save_file
+
+STATIC = Path(__file__).parent.joinpath("static")
+TEMPLATES = Path(__file__).parent.joinpath("templates")
 
 
 def flash(request: Request, message: Any, category: str = "primary") -> None:
@@ -37,10 +40,12 @@ app = FastAPI(
     version="1.0.0",
     middleware=middleware
 )
-app.mount("/static/", StaticFiles(directory="static", html=True), name="static")
+app.mount(f"/{STATIC}", StaticFiles(directory=STATIC, html=True), name="static")
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=TEMPLATES)
 templates.env.globals["get_flashed_messages"] = get_flashed_messages
+
+handler = Mangum(app=app)
 
 
 async def run(obj):
@@ -50,7 +55,7 @@ async def run(obj):
 @app.get("/download")
 async def download():
     file_name = "download.xlsx"
-    file_path = os.path.join(os.getcwd(), "static", "out", file_name)
+    file_path = Path(__file__).parent.joinpath("static", "out", file_name)
     return FileResponse(path=file_path, media_type="application/octet-stream", filename=file_name)
 
 
@@ -72,6 +77,5 @@ async def execute(request: Request, option: str = Form(...), file_path: UploadFi
     flash(request, "Aldo deu errado, tente novamente mais tarde..", "danger")
     return templates.TemplateResponse("index.html", {"request": request})
 
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", port=5000, log_level="info", reload=True)
+# if __name__ == "__main__":
+#     uvicorn.run("main:app", port=5000, log_level="info", reload=True)
