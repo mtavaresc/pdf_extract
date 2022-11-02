@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any
 
+import uvicorn
 from fastapi import FastAPI
 from fastapi import File
 from fastapi import Form
@@ -10,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from mangum import Mangum
+# from mangum import Mangum
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -45,7 +46,8 @@ app.mount(f"/{STATIC}", StaticFiles(directory=STATIC, html=True), name="static")
 templates = Jinja2Templates(directory=TEMPLATES)
 templates.env.globals["get_flashed_messages"] = get_flashed_messages
 
-handler = Mangum(app=app)
+
+# handler = Mangum(app=app)
 
 
 async def run(obj):
@@ -77,5 +79,6 @@ async def execute(request: Request, option: str = Form(...), file_path: UploadFi
     flash(request, "Aldo deu errado, tente novamente mais tarde..", "danger")
     return templates.TemplateResponse("index.html", {"request": request})
 
-# if __name__ == "__main__":
-#     uvicorn.run("main:app", port=5000, log_level="info", reload=True)
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", port=5000, log_level="info", reload=True)
