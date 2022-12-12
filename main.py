@@ -1,7 +1,6 @@
 import os
 from typing import Any
 
-import uvicorn
 from fastapi import FastAPI
 from fastapi import File
 from fastapi import Form
@@ -73,5 +72,5 @@ async def execute(request: Request, option: str = Form(...), file_path: UploadFi
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", port=5000, log_level="info", reload=True)
+# if __name__ == "__main__":
+#     uvicorn.run("main:app", port=5000, log_level="info", reload=True)
