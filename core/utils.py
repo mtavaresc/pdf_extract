@@ -1,11 +1,13 @@
-import os
 from datetime import datetime
 from pathlib import Path
 
 
 def save_file(filename, data):
-    Path(os.path.join("static", "data")).mkdir(parents=True, exist_ok=True)
-    target = os.path.join("static", "data", filename)
+    data_folder = Path("static", "data")
+    data_folder.mkdir(parents=True, exist_ok=True)
+
+    target = Path(data_folder).joinpath(filename)
+    target = Path(target.with_name(f"input{target.suffix}"))
     with open(target, "wb") as f:
         f.write(data)
     return target
