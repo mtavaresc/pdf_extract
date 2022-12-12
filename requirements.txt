@@ -10,7 +10,6 @@ tabula-py
 openpyxl
 xlrd~=1.2.0
 starlette~=0.19.1
-mangum
 #for development       #new
 
 #for testing       #new
