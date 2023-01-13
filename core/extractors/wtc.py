@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass
 from typing import AnyStr
 from typing import ClassVar
@@ -24,18 +25,67 @@ class Extractor:
         page = 0
         for table in tables:
             page += 1
-
             # Rename columns
-            table.rename(
-                {
-                    "Data Histórico Custo/Receita": "Data",
-                    "Recebimentos": "Histórico",
-                    "Unnamed: 0": "Custo/Receita",
-                    "Unnamed: 1": "Recebimentos",
-                },
-                axis=1,
-                inplace=True,
-            )
+            if "Data Histórico Custo/Receita" in table.columns:
+                cat = 0
+                table.rename(
+                    {
+                        "Data Histórico Custo/Receita": "Data",
+                        "Recebimentos": "Histórico",
+                        "Unnamed: 0": "Custo/Receita",
+                        "Unnamed: 1": "Recebimentos",
+                    },
+                    axis=1,
+                    inplace=True,
+                )
+            elif "Histórico Custo/Receita" in table.columns:
+                cat = 1
+                table.rename(
+                    {
+                        "Histórico Custo/Receita": "Histórico",
+                        "Unnamed: 0": "Custo/Receita",
+                    },
+                    axis=1,
+                    inplace=True
+                )
+                table.drop("Unnamed: 1", inplace=True, axis=1)
+            elif "Data Histórico" in table.columns:
+                cat = 2
+                table["Unnamed: 0"] = table['Custo/Receita'].map(str) + " " + table['Unnamed: 0']
+                table.drop("Custo/Receita", inplace=True, axis=1)
+                table.drop("Recebimentos", inplace=True, axis=1)
+                table.rename(
+                    {
+                        "Data Histórico": "Data",
+                        "Unnamed: 0": "Custo/Receita",
+                        "Unnamed: 1": "Recebimentos",
+                    },
+                    axis=1,
+                    inplace=True,
+                )
+            elif "Unnamed: 7" in table.columns:
+                cat = 3
+                table.drop("Unnamed: 4", inplace=True, axis=1)
+                table.drop("Unnamed: 6", inplace=True, axis=1)
+                table.drop("Unnamed: 7", inplace=True, axis=1)
+                table.drop("Usu.:", inplace=True, axis=1)
+                table.rename(
+                    {
+                        "Unnamed: 0": "Data",
+                        "Unnamed: 1": "Histórico",
+                        "Unnamed: 2": "Custo/Receita",
+                        "Unnamed: 3": "Recebimentos",
+                        "Unnamed: 5": "Pagamentos",
+                        "4": "Saldo",
+                    },
+                    axis=1,
+                    inplace=True,
+                )
+            else:
+                cat = 4
+                table.drop("Recebimentos", inplace=True, axis=1)
+                table.drop("Unnamed: 1", inplace=True, axis=1)
+                table.rename({"Unnamed: 0": "Recebimentos", }, axis=1, inplace=True)
 
             # Delete columns before 'Saldo'
             try:
@@ -65,12 +115,30 @@ class Extractor:
                 # Deleting the top 3 rows
                 table = table.iloc[3:, :]
             else:
-                table = table.iloc[1:, :]
+                table = table.iloc[6:, :] if cat == 3 else table.iloc[1:, :]
 
             table_list = [row for index, row in table.iterrows()]
             for index, row in enumerate(table_list):
                 try:
                     cells = row.get("Data").split()
+                    if cat == 1:
+                        i = row.get("Histórico")[-2:].strip()
+                        cells.append(row.get("Histórico").replace(i, "").strip())
+                        cells.append(i)
+                        cells.append(row.get("Custo/Receita"))
+                    elif cat == 2:
+                        if i := re.search(r"\d+", row.get("Custo/Receita")):
+                            cells.append(i.group(0))
+                            cells.append(row.get("Custo/Receita").replace(f"{i}.0", "").strip())
+                        else:
+                            cells.append(row.get("Custo/Receita").replace(f"nan", "").strip())
+                    elif cat == 3:
+                        pass
+                    elif cat == 4:
+                        i = re.search(r"\d+", row.get("Custo/Receita")).group(0)
+                        cells.append(row.get("Histórico"))
+                        cells.append(i)
+                        cells.append(row.get("Custo/Receita").replace(i, "").strip())
                 except Exception as e:
                     print(format(e))
                     continue
@@ -136,5 +204,6 @@ class Extractor:
                     )
 
         out_file_xlsx = os.path.join(self.destination, "download.xlsx")
-        pd.DataFrame(records).to_excel(out_file_xlsx)
+        df = pd.DataFrame(records)
+        df.to_excel(out_file_xlsx)
         return out_file_xlsx
