@@ -1,4 +1,4 @@
-from core.extractors import avance, wtc
+from core.extractors import wtc, avance
 
 ROUTER = {
     "wtc": wtc,
