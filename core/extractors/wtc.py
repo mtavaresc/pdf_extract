@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import re
 from dataclasses import dataclass
@@ -20,6 +18,7 @@ class Extractor:
     file: AnyStr
 
     def execute(self):
+        global cat
         tables = tb.read_pdf(self.file, pages="all")
 
         records: list[Record] = []
@@ -39,7 +38,15 @@ class Extractor:
                     axis=1,
                     inplace=True,
                 )
-            elif "Histórico Custo/Receita" in table.columns:
+            elif {
+                "Data",
+                "Histórico Custo/Receita",
+                "Unnamed: 0",
+                "Recebimentos",
+                "Unnamed: 1",
+                "Pagamentos",
+                "Saldo",
+            }.issubset(table.columns):
                 cat = 1
                 table.drop("Recebimentos", inplace=True, axis=1)
                 table.rename(
@@ -51,7 +58,15 @@ class Extractor:
                     axis=1,
                     inplace=True,
                 )
-            elif "Data Histórico" in table.columns:
+            elif {
+                "Data Histórico",
+                "Custo/Receita",
+                "Unnamed: 0",
+                "Recebimentos",
+                "Unnamed: 1",
+                "Pagamentos",
+                "Saldo",
+            }.issubset(table.columns):
                 cat = 2
                 table["Unnamed: 0"] = table["Custo/Receita"].map(str) + " " + table["Unnamed: 0"]
                 table.drop("Custo/Receita", inplace=True, axis=1)
@@ -65,7 +80,18 @@ class Extractor:
                     axis=1,
                     inplace=True,
                 )
-            elif "Unnamed: 7" in table.columns:
+            elif {
+                "Unnamed: 0",
+                "Unnamed: 1",
+                "Unnamed: 2",
+                "Unnamed: 3",
+                "Unnamed: 4",
+                "Unnamed: 5",
+                "Unnamed: 6",
+                "Unnamed: 7",
+                "Usu.:",
+                "4",
+            }.issubset(table.columns):
                 cat = 3
                 table.drop("Unnamed: 4", inplace=True, axis=1)
                 table.drop("Unnamed: 6", inplace=True, axis=1)
@@ -83,7 +109,16 @@ class Extractor:
                     axis=1,
                     inplace=True,
                 )
-            else:
+            elif {
+                "Data",
+                "Histórico",
+                "Custo/Receita",
+                "Recebimentos",
+                "Unnamed: 0",
+                "Pagamentos",
+                "Unnamed: 1",
+                "Saldo",
+            }.issubset(table.columns):
                 cat = 4
                 table.drop("Recebimentos", inplace=True, axis=1)
                 table.drop("Unnamed: 1", inplace=True, axis=1)

@@ -21,9 +21,7 @@ from core.utils import save_file
 def flash(request: Request, message: Any, category: str = "primary") -> None:
     if "_messages" not in request.session:
         request.session["_messages"] = []
-        request.session["_messages"].append(
-            {"message": message, "category": category}
-        )
+        request.session["_messages"].append({"message": message, "category": category})
 
 
 def get_flashed_messages(request: Request):
@@ -32,11 +30,7 @@ def get_flashed_messages(request: Request):
 
 
 middleware = [Middleware(SessionMiddleware, secret_key="super-secret")]
-app = FastAPI(
-    title="ExtractorWebApp",
-    version="1.0.0",
-    middleware=middleware
-)
+app = FastAPI(title="ExtractorWebApp", version="1.0.0", middleware=middleware)
 app.mount("/static/", StaticFiles(directory="static", html=True), name="static")
 
 templates = Jinja2Templates(directory="templates")
@@ -68,7 +62,9 @@ async def execute(request: Request, option: str = Form(...), file_path: UploadFi
     download_file = await run(extractor)
     if download_file:
         flash(request, "Arquivo processado com sucesso!", "success")
-        return templates.TemplateResponse("index.html", {"request": request, "download": download_file})
+        return templates.TemplateResponse(
+            "index.html", {"request": request, "download": download_file}
+        )
     flash(request, "Aldo deu errado, tente novamente mais tarde..", "danger")
     return templates.TemplateResponse("index.html", {"request": request})
 
