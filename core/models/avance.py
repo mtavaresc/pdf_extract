@@ -32,3 +32,5 @@ class Record:
     juros: float = None
     operador: str = None
     complemento: str = None
+    plano_contas: str = None
+    observacao: str = None
