@@ -63,7 +63,7 @@ async def execute(request: Request, option: str = Form(...), file_path: UploadFi
     if download_file:
         flash(request, "Arquivo processado com sucesso!", "success")
         return templates.TemplateResponse(
-            "index.html", {"request": request, "download": download_file}
+            "index.html", {"request": request, "download": download_file},
         )
     flash(request, "Aldo deu errado, tente novamente mais tarde..", "danger")
     return templates.TemplateResponse("index.html", {"request": request})

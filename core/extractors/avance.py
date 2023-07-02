@@ -62,7 +62,7 @@ class Extractor:
                     pagamento_juros=utils.parse_float(row[33].value),
                     pagamento_desconto=utils.parse_float(row[35].value),
                     pagamento_pago=utils.parse_float(row[38].value),
-                )
+                ),
             )
 
         out_file_xlsx = os.path.join(self.destination, "download.xlsx")
