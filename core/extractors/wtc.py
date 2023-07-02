@@ -1,6 +1,6 @@
-import os
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import AnyStr
 from typing import ClassVar
 
@@ -14,7 +14,7 @@ from core.models.wtc import Record
 
 @dataclass(frozen=True)
 class Extractor:
-    destination: ClassVar[AnyStr] = os.path.join("static", "out")
+    destination: ClassVar[AnyStr] = Path("static", "out")
     file: AnyStr
 
     def execute(self):
@@ -46,7 +46,7 @@ class Extractor:
                 "Unnamed: 1",
                 "Pagamentos",
                 "Saldo",
-            }.issubset(table.columns):
+            } == set(table.columns):
                 cat = 1
                 table.drop("Recebimentos", inplace=True, axis=1)
                 table.rename(
@@ -66,7 +66,7 @@ class Extractor:
                 "Unnamed: 1",
                 "Pagamentos",
                 "Saldo",
-            }.issubset(table.columns):
+            } == set(table.columns):
                 cat = 2
                 table["Unnamed: 0"] = table["Custo/Receita"].map(str) + " " + table["Unnamed: 0"]
                 table.drop("Custo/Receita", inplace=True, axis=1)
@@ -110,6 +110,43 @@ class Extractor:
                     inplace=True,
                 )
             elif {
+                "Unnamed: 0",
+                "Unnamed: 1",
+                "Unnamed: 2",
+                "Unnamed: 3",
+                "Unnamed: 4",
+                "Unnamed: 5",
+                "Unnamed: 6",
+                "Unnamed: 7",
+            }.issubset(table.columns):
+                cat = 4
+                diff = set(table.columns).difference({
+                    "Unnamed: 0",
+                    "Unnamed: 1",
+                    "Unnamed: 2",
+                    "Unnamed: 3",
+                    "Unnamed: 4",
+                    "Unnamed: 5",
+                    "Unnamed: 6",
+                    "Unnamed: 7",
+                })
+                table.drop("Unnamed: 2", inplace=True, axis=1)
+                table.drop("Unnamed: 4", inplace=True, axis=1)
+                table.drop("Unnamed: 6", inplace=True, axis=1)
+                table.drop("Unnamed: 7", inplace=True, axis=1)
+                table.rename(
+                    {
+                        "Unnamed: 0": "Data",
+                        "Unnamed: 1": "Histórico",
+                        "Unnamed: 3": "Custo/Receita",
+                        "Unnamed: 5": "Pagamentos",
+                        list(diff)[0]: "Saldo",
+                    },
+                    axis=1,
+                    inplace=True,
+                )
+                table = table.iloc[9:-4, :]
+            elif {
                 "Data",
                 "Histórico",
                 "Custo/Receita",
@@ -118,8 +155,8 @@ class Extractor:
                 "Pagamentos",
                 "Unnamed: 1",
                 "Saldo",
-            }.issubset(table.columns):
-                cat = 4
+            } == set(table.columns):
+                cat = 5
                 table.drop("Recebimentos", inplace=True, axis=1)
                 table.drop("Unnamed: 1", inplace=True, axis=1)
                 table.rename(
@@ -129,6 +166,30 @@ class Extractor:
                     axis=1,
                     inplace=True,
                 )
+            elif {
+                "Data Histórico",
+                "Custo/Receita",
+                "Recebimentos",
+                "Unnamed: 0",
+                "Unnamed: 1",
+                "Pagamentos",
+                "Unnamed: 2",
+                "Saldo",
+            } == set(table.columns):
+                cat = 6
+                table.drop("Recebimentos", inplace=True, axis=1)
+                table.drop("Unnamed: 0", inplace=True, axis=1)
+                table.drop("Unnamed: 2", inplace=True, axis=1)
+                table.rename(
+                    {
+                        "Data Histórico": "Data",
+                        "Unnamed: 1": "Recebimentos",
+                    },
+                    axis=1,
+                    inplace=True
+                )
+            else:
+                print(f"Page #{page} not tracked: {set(table.columns)}")
 
             # Delete columns before 'Saldo'
             try:
@@ -149,8 +210,7 @@ class Extractor:
             # Moving column 'Saldo' to the ending
             try:
                 last_column = table.pop("Saldo")
-            except Exception as e:
-                print(format(e))
+            except KeyError:
                 continue
             table.insert(table.columns.__len__(), "Saldo", last_column)
 
@@ -163,6 +223,7 @@ class Extractor:
             table_list = [row for index, row in table.iterrows()]
             for index, row in enumerate(table_list):
                 try:
+                    # split column "Date" to create column "History"
                     cells = row.get("Data").split()
                     if cat == 1:
                         i = row.get("Histórico")[-2:].strip()
@@ -177,7 +238,11 @@ class Extractor:
                             )
                         else:
                             cells.append(row.get("Custo/Receita").replace("nan", "").strip())
-                    elif cat in {3, 4}:
+                    elif cat == 4:
+                        if i := re.search(r"(\d+,\d+)", row.get("Custo/Receita")):
+                            row["Custo/Receita"] = row.get("Custo/Receita").replace(i.group(0), "").strip()
+                            row["Recebimentos"] = i.group(0)
+                    elif cat in {3, 5}:
                         if i := re.search(r"\d+", row.get("Custo/Receita")):
                             cells.append(row.get("Histórico"))
                             cells.append(i.group(0))
@@ -190,16 +255,17 @@ class Extractor:
                 except Exception as e:
                     print(format(e))
                     continue
-                try:
-                    idx = cells.index([i for i in cells if utils.parse_int(i)][0])
-                except Exception as e:
-                    print(format(e))
-                    continue
+
+                if found_int_in_cells := [i for i in cells if utils.parse_int(i)]:
+                    idx = cells.index(found_int_in_cells[0]) - 1
+                else:
+                    idx = None
+
                 try:
                     data = utils.parse_date(cells[0])
                     past = False
                 except ValueError:
-                    ix = list(row.values).index([r for r in list(row.values) if type(r) != str][0])
+                    ix = list(row.values).index([r for r in list(row.values) if not isinstance(r, str)][0])
                     data = " ".join(list(row.values)[:ix]).split()
                     past = True
 
@@ -209,13 +275,15 @@ class Extractor:
                     if pd.isna(row.get("Recebimentos"))
                     else utils.parse_float(row.get("Recebimentos"))
                 )
+                # recebimentos = recebimentos if recebimentos else recebimentos
                 pagamentos = utils.parse_float(row.get("Pagamentos"))
                 custo_receita = (
                     " ".join(cells[idx: len(cells)])
                     if pd.isna(row.get("Custo/Receita"))
                     else row.get("Custo/Receita")
                 )
-                historico = " ".join(cells[:idx])
+                historico = " ".join(cells[:idx]) if idx else " ".join(cells)
+                historico = historico if historico else row.get("Histórico")
                 saldo = utils.parse_float(row.get("Saldo"))
 
                 # print(page, data)
@@ -250,7 +318,7 @@ class Extractor:
                         ),
                     )
 
-        out_file_xlsx = os.path.join(self.destination, "download.xlsx")
+        out_file_xlsx = Path.joinpath(self.destination, "download.xlsx")
         df = pd.DataFrame(records)
         df.to_excel(out_file_xlsx)
         return out_file_xlsx
