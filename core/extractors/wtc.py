@@ -28,16 +28,29 @@ class Extractor:
             # Rename columns
             if "Data Histórico Custo/Receita" in table.columns:
                 cat = 0
-                table.rename(
-                    {
-                        "Data Histórico Custo/Receita": "Data",
-                        "Recebimentos": "Histórico",
-                        "Unnamed: 0": "Custo/Receita",
-                        "Unnamed: 1": "Recebimentos",
-                    },
-                    axis=1,
-                    inplace=True,
-                )
+                if pd.isnull(table.loc[1, "Recebimentos"]):
+                    table.drop("Recebimentos", inplace=True, axis=1)
+                    table.drop("Unnamed: 1", inplace=True, axis=1)
+                    table.rename(
+                        {
+                            "Data Histórico Custo/Receita": "Data",
+                            "Unnamed: 0": "Custo/Receita",
+                            "Unnamed: 2": "Recebimentos",
+                        },
+                        axis=1,
+                        inplace=True,
+                    )
+                else:
+                    table.rename(
+                        {
+                            "Data Histórico Custo/Receita": "Data",
+                            "Recebimentos": "Histórico",
+                            "Unnamed: 0": "Custo/Receita",
+                            "Unnamed: 1": "Recebimentos",
+                        },
+                        axis=1,
+                        inplace=True,
+                    )
             elif {
                 "Data",
                 "Histórico Custo/Receita",
@@ -48,16 +61,19 @@ class Extractor:
                 "Saldo",
             } == set(table.columns):
                 cat = 1
-                table.drop("Recebimentos", inplace=True, axis=1)
-                table.rename(
-                    {
-                        "Histórico Custo/Receita": "Histórico",
-                        "Unnamed: 0": "Custo/Receita",
-                        "Unnamed: 1": "Recebimentos",
-                    },
-                    axis=1,
-                    inplace=True,
-                )
+                if pd.isnull(table.loc[1, "Recebimentos"]):
+                    table.drop("Recebimentos", inplace=True, axis=1)
+                    table.rename(
+                        {
+                            "Histórico Custo/Receita": "Histórico",
+                            "Unnamed: 0": "Custo/Receita",
+                            "Unnamed: 1": "Recebimentos",
+                        },
+                        axis=1,
+                        inplace=True,
+                    )
+                else:
+                    table.drop("Unnamed: 1", inplace=True, axis=1)
             elif {
                 "Data Histórico",
                 "Custo/Receita",
@@ -145,7 +161,7 @@ class Extractor:
                     axis=1,
                     inplace=True,
                 )
-                table = table.iloc[9:-4, :]
+                table = table.iloc[8:-4, :]
             elif {
                 "Data",
                 "Histórico",
@@ -256,11 +272,6 @@ class Extractor:
                     print(format(e))
                     continue
 
-                if found_int_in_cells := [i for i in cells if utils.parse_int(i)]:
-                    idx = cells.index(found_int_in_cells[0]) - 1
-                else:
-                    idx = None
-
                 try:
                     data = utils.parse_date(cells[0])
                     past = False
@@ -270,13 +281,23 @@ class Extractor:
                     past = True
 
                 del cells[0]
+
+                if found_int_in_cells := [i for i in cells if utils.parse_int(i)]:
+                    idx = cells.index(found_int_in_cells[0])
+                else:
+                    idx = None
+
+                # Setting Recebimentos
                 recebimentos = (
                     utils.parse_float(row.get("Histórico"))
                     if pd.isna(row.get("Recebimentos"))
                     else utils.parse_float(row.get("Recebimentos"))
                 )
-                # recebimentos = recebimentos if recebimentos else recebimentos
+
+                # Setting Pagamentos
                 pagamentos = utils.parse_float(row.get("Pagamentos"))
+
+                # Setting Custo/Receita
                 custo_receita = (
                     " ".join(cells[idx: len(cells)])
                     if pd.isna(row.get("Custo/Receita"))
@@ -284,6 +305,8 @@ class Extractor:
                 )
                 historico = " ".join(cells[:idx]) if idx else " ".join(cells)
                 historico = historico if historico else row.get("Histórico")
+
+                # Setting Saldo
                 saldo = utils.parse_float(row.get("Saldo"))
 
                 # print(page, data)
