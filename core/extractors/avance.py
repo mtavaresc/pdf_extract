@@ -1,5 +1,5 @@
-import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import AnyStr
 from typing import ClassVar
 from typing import List
@@ -14,7 +14,7 @@ from core.models.avance import Record
 
 @dataclass(frozen=True)
 class Extractor:
-    destination: ClassVar[AnyStr] = os.path.join("static", "out")
+    destination: ClassVar = Path("static", "out")
     file: AnyStr
 
     def execute(self):
@@ -24,7 +24,11 @@ class Extractor:
         records: List[Record] = []
         for rx in range(8, sheet.nrows):
             row = sheet.row(rx)
-            if not (utils.parse_int(row[0].value) or row[0].ctype == 3 or row[0].value == "Plano de Contas:"):
+            if not (
+                utils.parse_int(row[0].value)
+                or row[0].ctype == 3
+                or row[0].value == "Plano de Contas:"
+            ):
                 continue
             if row[0].value == "Plano de Contas:":
                 records[-1].plano_contas = row[3].value
@@ -65,6 +69,6 @@ class Extractor:
                 ),
             )
 
-        out_file_xlsx = os.path.join(self.destination, "download.xlsx")
+        out_file_xlsx = Path(self.destination, "download.xlsx")
         pd.DataFrame(records).to_excel(out_file_xlsx)
         return out_file_xlsx
